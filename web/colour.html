@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PebbleTools - Colour</title>
+<style>
+  body {
+    background-color: #121212;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    margin: 0;
+  }
+  h2 { margin-bottom: 16px; }
+  .unit-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  label {
+    width: 110px;
+  }
+  input[type="text"] {
+    width: 120px;
+    padding: 6px 10px;
+    font-size: 1rem;
+    border: 1.5px solid #555;
+    border-radius: 6px;
+    background-color: #222;
+    color: #eee;
+  }
+  input[type="text"]:focus {
+    outline: none;
+    border-color: #3a9bf0;
+    box-shadow: 0 0 6px #3a9bf0;
+    background-color: #2a2a2a;
+  }
+  input.color-picker {
+    width: 40px;
+    height: 36px;
+    border: 1.5px solid #555;
+    border-radius: 6px;
+    margin-left: 8px;
+    cursor: pointer;
+    padding: 0;
+    background-color: #222;
+  }
+  input.color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  input.color-picker::-webkit-color-swatch {
+    border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Color Converter</h2>
+
+<div class="unit-row">
+  <label for="color-hex">HEX</label>
+  <input type="text" id="color-hex" placeholder="#RRGGBB" />
+  <input type="color" class="color-picker" id="color-picker" />
+</div>
+<div class="unit-row">
+  <label for="color-rgb">RGB</label>
+  <input type="text" id="color-rgb" placeholder="rgb(255,255,255)" />
+</div>
+<div class="unit-row">
+  <label for="color-hsl">HSL</label>
+  <input type="text" id="color-hsl" placeholder="hsl(0,0%,100%)" />
+</div>
+
+<script>
+function clamp(num, min, max) {
+  return Math.min(Math.max(num, min), max);
+}
+
+function hexToRgb(hex) {
+  hex = hex.trim();
+  if (!/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) return null;
+  if (hex.length === 4) {
+    hex = "#" + [...hex.slice(1)].map(c => c + c).join("");
+  }
+  const bigint = parseInt(hex.slice(1), 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255,
+  };
+}
+
+function rgbToHex(r,g,b) {
+  return "#" + [r,g,b].map(x => x.toString(16).padStart(2,"0")).join("");
+}
+
+function rgbStringToRgb(rgb) {
+  const m = rgb.match(/rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)/i);
+  if (!m) return null;
+  return {r: +m[1], g: +m[2], b: +m[3]};
+}
+
+function rgbToHsl(r,g,b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r,g,b);
+  const min = Math.min(r,g,b);
+  let h, s, l = (max + min) / 2;
+
+  if(max === min){
+      h = s = 0;
+  } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max){
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+  }
+  return {
+    h: Math.round(h*360),
+    s: Math.round(s*100),
+    l: Math.round(l*100)
+  };
+}
+
+function hslToRgb(h,s,l){
+  h /= 360;
+  s /= 100;
+  l /= 100;
+  let r, g, b;
+
+  if(s === 0){
+      r = g = b = l;
+  } else {
+      const hue2rgb = (p, q, t) => {
+          if(t < 0) t += 1;
+          if(t > 1) t -= 1;
+          if(t < 1/6) return p + (q - p) * 6 * t;
+          if(t < 1/2) return q;
+          if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+      }
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+  }
+  return {
+    r: Math.round(r * 255),
+    g: Math.round(g * 255),
+    b: Math.round(b * 255)
+  };
+}
+
+let colorIsUpdating = false;
+
+function updateColorFromHex(hex) {
+  if(colorIsUpdating) return;
+  colorIsUpdating = true;
+  const rgb = hexToRgb(hex);
+  if(rgb){
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    document.getElementById("color-rgb").value = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+    document.getElementById("color-hsl").value = `hsl(${hsl.h},${hsl.s}%,${hsl.l}%)`;
+    document.getElementById("color-picker").value = hex;
+  } else {
+    document.getElementById("color-rgb").value = "";
+    document.getElementById("color-hsl").value = "";
+  }
+  colorIsUpdating = false;
+}
+
+function updateColorFromRgb(rgbStr) {
+  if(colorIsUpdating) return;
+  colorIsUpdating = true;
+  const rgb = rgbStringToRgb(rgbStr);
+  if(rgb){
+    rgb.r = clamp(rgb.r, 0, 255);
+    rgb.g = clamp(rgb.g, 0, 255);
+    rgb.b = clamp(rgb.b, 0, 255);
+    const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+    document.getElementById("color-hex").value = hex;
+    document.getElementById("color-picker").value = hex;
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    document.getElementById("color-hsl").value = `hsl(${hsl.h},${hsl.s}%,${hsl.l}%)`;
+  } else {
+    document.getElementById("color-hex").value = "";
+    document.getElementById("color-hsl").value = "";
+  }
+  colorIsUpdating = false;
+}
+
+function updateColorFromHsl(hslStr) {
+  if(colorIsUpdating) return;
+  colorIsUpdating = true;
+  const m = hslStr.match(/hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)/i);
+  if(m){
+    let h = parseInt(m[1]), s = parseInt(m[2]), l = parseInt(m[3]);
+    h = (h + 360) % 360;
+    s = Math.min(Math.max(s,0),100);
+    l = Math.min(Math.max(l,0),100);
+    const rgb = hslToRgb(h, s, l);
+    const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+    document.getElementById("color-hex").value = hex;
+    document.getElementById("color-picker").value = hex;
+    document.getElementById("color-rgb").value = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+  } else {
+    document.getElementById("color-hex").value = "";
+    document.getElementById("color-rgb").value = "";
+  }
+  colorIsUpdating = false;
+}
+
+document.getElementById("color-hex").addEventListener("input", e => updateColorFromHex(e.target.value));
+document.getElementById("color-rgb").addEventListener("input", e => updateColorFromRgb(e.target.value));
+document.getElementById("color-hsl").addEventListener("input", e => updateColorFromHsl(e.target.value));
+document.getElementById("color-picker").addEventListener("input", e => {
+  if(colorIsUpdating) return;
+  colorIsUpdating = true;
+  const val = e.target.value;
+  document.getElementById("color-hex").value = val;
+  updateColorFromHex(val);
+  colorIsUpdating = false;
+});
+</script>
+
+</body>
+</html>
