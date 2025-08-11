@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tabs with Embedded HTML Files</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background-color: #121212;
+    color: #eee;
+    font-family: Arial, sans-serif;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .tabs {
+    display: flex;
+    border-bottom: 2px solid #333;
+    background-color: #1e1e1e;
+  }
+  .tab {
+    padding: 12px 24px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    user-select: none;
+    color: #ccc;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .tab:hover {
+    background-color: #333;
+    color: white;
+  }
+  .tab.active {
+    border: 1px solid #555;
+    border-bottom: 2px solid #121212;
+    background-color: #121212;
+    color: #fff;
+    font-weight: bold;
+  }
+  iframe {
+    flex-grow: 1;
+    border: none;
+    width: 100%;
+    background-color: #121212;
+  }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" data-src="length.html">Length Converter</div>
+  <div class="tab" data-src="weight.html">Weight Converter</div>
+  <div class="tab" data-src="time.html">Time</div>
+  <div class="tab" data-src="colour.html">Colour</div>
+  <div class="tab" data-src="temperature.html">Temperature</div>
+  <div class="tab" data-src="speed.html">Speed Converter</div>
+  <div class="tab" data-src="area.html">Area Converter</div>
+</div>
+
+<iframe id="tabContent" src="length.html"></iframe>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const iframe = document.getElementById('tabContent');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      iframe.src = tab.getAttribute('data-src');
+    });
+  });
+</script>
+
+</body>
+</html>

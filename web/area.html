@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Area Converter</title>
+<style>
+  body {
+    background-color: #121212;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    margin: 0;
+    max-width: 360px;
+  }
+  h2 {
+    margin-bottom: 16px;
+  }
+  .unit-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  label {
+    width: 140px;
+  }
+  input[type="number"] {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 1rem;
+    border: 1.5px solid #555;
+    border-radius: 6px;
+    background-color: #222;
+    color: #eee;
+  }
+  input[type="number"]:focus {
+    outline: none;
+    border-color: #3a9bf0;
+    box-shadow: 0 0 6px #3a9bf0;
+    background-color: #2a2a2a;
+  }
+</style>
+</head>
+<body>
+
+<h2>Area Converter</h2>
+
+<div class="unit-row">
+  <label for="sqm">Square meter (m²)</label>
+  <input type="number" id="sqm" step="any" min="0" />
+</div>
+<div class="unit-row">
+  <label for="sqkm">Square kilometer (km²)</label>
+  <input type="number" id="sqkm" step="any" min="0" />
+</div>
+<div class="unit-row">
+  <label for="sqft">Square foot (ft²)</label>
+  <input type="number" id="sqft" step="any" min="0" />
+</div>
+<div class="unit-row">
+  <label for="sqyd">Square yard (yd²)</label>
+  <input type="number" id="sqyd" step="any" min="0" />
+</div>
+<div class="unit-row">
+  <label for="acre">Acre</label>
+  <input type="number" id="acre" step="any" min="0" />
+</div>
+<div class="unit-row">
+  <label for="hectare">Hectare</label>
+  <input type="number" id="hectare" step="any" min="0" />
+</div>
+
+<script>
+  const units = {
+    sqm: 1, // square meter
+    sqkm: 1e6, // square km = 1,000,000 m²
+    sqft: 0.092903, // square foot in m²
+    sqyd: 0.836127, // square yard in m²
+    acre: 4046.8564224, // acre in m²
+    hectare: 10000 // hectare in m²
+  };
+
+  const inputs = {};
+  for (const id in units) {
+    inputs[id] = document.getElementById(id);
+  }
+
+  let isUpdating = false;
+
+  function convertFrom(unitId, value) {
+    if (isUpdating) return;
+    isUpdating = true;
+    const baseSqm = value * units[unitId]; // convert input to sqm
+    for (const id in inputs) {
+      if (id === unitId) continue;
+      inputs[id].value = +(baseSqm / units[id]).toFixed(6);
+    }
+    isUpdating = false;
+  }
+
+  for (const id in inputs) {
+    inputs[id].addEventListener('input', e => {
+      const val = parseFloat(e.target.value);
+      if (!isNaN(val)) convertFrom(id, val);
+      else {
+        if (!isUpdating) {
+          isUpdating = true;
+          for (const key in inputs) {
+            if (key !== id) inputs[key].value = '';
+          }
+          isUpdating = false;
+        }
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

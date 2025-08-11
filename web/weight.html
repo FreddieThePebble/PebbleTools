@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PebbleTools - Weight</title>
+<style>
+  body {
+    background-color: #121212;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    margin: 0;
+  }
+  h2 { margin-bottom: 16px; }
+  .container {
+    display: flex;
+    gap: 20px;
+  }
+  .column {
+    flex: 1;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 15px 20px;
+    background-color: #1e1e1e;
+    min-width: 230px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .unit-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .unit-row label {
+    width: 110px;
+  }
+  .unit-row input {
+    width: 130px;
+    padding: 6px 10px;
+    font-size: 1rem;
+    border: 1.5px solid #555;
+    border-radius: 6px;
+    background-color: #222;
+    color: #eee;
+  }
+  .unit-row input:focus {
+    outline: none;
+    border-color: #3a9bf0;
+    box-shadow: 0 0 6px #3a9bf0;
+    background-color: #2a2a2a;
+  }
+</style>
+</head>
+<body>
+
+<h2>Weight Converter</h2>
+<div class="container">
+  <div class="column" id="metric-column"><h3>Metric</h3></div>
+  <div class="column" id="imperial-column"><h3>Imperial</h3></div>
+  <div class="column" id="misc-column"><h3>Miscellaneous</h3></div>
+</div>
+
+<script>
+const weightUnits = [
+  { name: "milligram", toGram: 0.001, group: "metric" },
+  { name: "gram", toGram: 1, group: "metric" },
+  { name: "kilogram", toGram: 1000, group: "metric" },
+  { name: "metric ton", toGram: 1e6, group: "metric" },
+
+  { name: "ounce", toGram: 28.3495, group: "imperial" },
+  { name: "pound", toGram: 453.592, group: "imperial" },
+  { name: "stone", toGram: 6350.29, group: "imperial" },
+
+  { name: "carat", toGram: 0.2, group: "misc" },
+  { name: "grain", toGram: 0.0647989, group: "misc" },
+  { name: "long ton", toGram: 1.016e6, group: "misc" },
+  { name: "short ton", toGram: 907185, group: "misc" },
+];
+
+const containers = {
+  metric: document.getElementById("metric-column"),
+  imperial: document.getElementById("imperial-column"),
+  misc: document.getElementById("misc-column"),
+};
+
+weightUnits.forEach((unit, i) => {
+  const container = containers[unit.group];
+  const row = document.createElement("div");
+  row.className = "unit-row";
+
+  const label = document.createElement("label");
+  label.htmlFor = "input" + i;
+  label.textContent = unit.name;
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.step = "any";
+  input.min = "0";
+  input.id = "input" + i;
+  input.dataset.index = i;
+
+  row.appendChild(label);
+  row.appendChild(input);
+  container.appendChild(row);
+});
+
+let isUpdating = false;
+
+function convertFrom(index, value) {
+  if(isUpdating) return;
+  isUpdating = true;
+  const baseGram = value * weightUnits[index].toGram;
+  weightUnits.forEach((unit, i) => {
+    if(i === index) return;
+    const converted = baseGram / unit.toGram;
+    const input = document.getElementById("input" + i);
+    input.value = (converted || "").toFixed(6);
+  });
+  isUpdating = false;
+}
+
+weightUnits.forEach((_, i) => {
+  const input = document.getElementById("input" + i);
+  input.addEventListener("input", e => {
+    const val = parseFloat(e.target.value);
+    if(!isNaN(val)) convertFrom(i, val);
+    else {
+      if(!isUpdating) {
+        isUpdating = true;
+        weightUnits.forEach((_, idx) => {
+          if(idx !== i) document.getElementById("input" + idx).value = "";
+        });
+        isUpdating = false;
+      }
+    }
+  });
+});
+</script>
+
+</body>
+</html>

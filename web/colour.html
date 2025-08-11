@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Color Converter</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+  label { display: block; margin-top: 12px; }
+  input[type="text"], input[type="number"] { width: 100%; padding: 6px; font-size: 1rem; box-sizing: border-box; }
+  .preview { margin-top: 20px; height: 80px; border: 1px solid #ccc; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+</style>
+</head>
+<body>
+
+<h2>Color Converter</h2>
+
+<label>Hex (#RRGGBB):
+  <input id="hex" type="text" maxlength="7" />
+</label>
+
+<div class="row">
+  <div>
+    <label>RGB (0-255):</label>
+    <input id="r" type="number" min="0" max="255" placeholder="R" />
+  </div>
+  <div>
+    <input id="g" type="number" min="0" max="255" placeholder="G" />
+  </div>
+  <div>
+    <input id="b" type="number" min="0" max="255" placeholder="B" />
+  </div>
+</div>
+
+<div class="row">
+  <div>
+    <label>HSL:</label>
+    <input id="hsl-h" type="number" min="0" max="360" placeholder="H°" />
+  </div>
+  <div>
+    <input id="hsl-s" type="number" min="0" max="100" placeholder="S%" />
+  </div>
+  <div>
+    <input id="hsl-l" type="number" min="0" max="100" placeholder="L%" />
+  </div>
+</div>
+
+<div class="row">
+  <div>
+    <label>HSV:</label>
+    <input id="hsv-h" type="number" min="0" max="360" placeholder="H°" />
+  </div>
+  <div>
+    <input id="hsv-s" type="number" min="0" max="100" placeholder="S%" />
+  </div>
+  <div>
+    <input id="hsv-v" type="number" min="0" max="100" placeholder="V%" />
+  </div>
+</div>
+
+<div class="row">
+  <div>
+    <label>CMYK:</label>
+    <input id="cmyk-c" type="number" min="0" max="100" placeholder="C%" />
+  </div>
+  <div>
+    <input id="cmyk-m" type="number" min="0" max="100" placeholder="M%" />
+  </div>
+  <div>
+    <input id="cmyk-y" type="number" min="0" max="100" placeholder="Y%" />
+  </div>
+  <div>
+    <input id="cmyk-k" type="number" min="0" max="100" placeholder="K%" />
+  </div>
+</div>
+
+<div class="row">
+  <div>
+    <label>OKLCH:</label>
+    <input id="oklch-l" type="number" min="0" max="1" step="0.001" placeholder="L" />
+  </div>
+  <div>
+    <input id="oklch-c" type="number" min="0" max="0.5" step="0.001" placeholder="C" />
+  </div>
+  <div>
+    <input id="oklch-h" type="number" min="0" max="360" step="0.1" placeholder="H°" />
+  </div>
+</div>
+
+<div class="preview" id="preview"></div>
+
+<script>
+  const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+
+  function hexToRgb(hex) {
+    hex = hex.replace(/^#/, '');
+    if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
+    if (hex.length !== 6) return null;
+    const bigint = parseInt(hex, 16);
+    if (isNaN(bigint)) return null;
+    return {
+      r: (bigint >> 16) & 255,
+      g: (bigint >> 8) & 255,
+      b: bigint & 255
+    };
+  }
+
+  function rgbToHex(r, g, b) {
+    return "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) h = s = 0;
+    else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max) {
+        case r: h = ((g - b) / d) + (g < b ? 6 : 0); break;
+        case g: h = ((b - r) / d) + 2; break;
+        case b: h = ((r - g) / d) + 4; break;
+      }
+      h /= 6;
+    }
+    return {h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100)};
+  }
+
+  function hslToRgb(h, s, l) {
+    h /= 360; s /= 100; l /= 100;
+    let r, g, b;
+
+    if (s === 0) r = g = b = l;
+    else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+
+    return {r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255)};
+  }
+
+  function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const d = max - min;
+    let h, s = max === 0 ? 0 : d / max;
+    if (d === 0) h = 0;
+    else {
+      switch(max){
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return {h: Math.round(h * 360), s: Math.round(s * 100), v: Math.round(max * 100)};
+  }
+
+  function hsvToRgb(h, s, v) {
+    h /= 60;
+    s /= 100;
+    v /= 100;
+    const c = v * s;
+    const x = c * (1 - Math.abs(h % 2 - 1));
+    const m = v - c;
+    let r1, g1, b1;
+    if (h >= 0 && h < 1) [r1, g1, b1] = [c, x, 0];
+    else if (h < 2) [r1, g1, b1] = [x, c, 0];
+    else if (h < 3) [r1, g1, b1] = [0, c, x];
+    else if (h < 4) [r1, g1, b1] = [0, x, c];
+    else if (h < 5) [r1, g1, b1] = [x, 0, c];
+    else [r1, g1, b1] = [c, 0, x];
+
+    return {
+      r: Math.round((r1 + m) * 255),
+      g: Math.round((g1 + m) * 255),
+      b: Math.round((b1 + m) * 255)
+    };
+  }
+
+  function rgbToCmyk(r, g, b) {
+    let c = 1 - r/255;
+    let m = 1 - g/255;
+    let y = 1 - b/255;
+    let k = Math.min(c, m, y);
+    if (k === 1) return {c:0, m:0, y:0, k:100};
+    c = ((c - k) / (1 - k));
+    m = ((m - k) / (1 - k));
+    y = ((y - k) / (1 - k));
+    return {
+      c: Math.round(c * 100),
+      m: Math.round(m * 100),
+      y: Math.round(y * 100),
+      k: Math.round(k * 100)
+    };
+  }
+
+  function cmykToRgb(c, m, y, k) {
+    c /= 100; m /= 100; y /= 100; k /= 100;
+    return {
+      r: Math.round(255 * (1 - c) * (1 - k)),
+      g: Math.round(255 * (1 - m) * (1 - k)),
+      b: Math.round(255 * (1 - y) * (1 - k))
+    };
+  }
+
+  function rgbToOklab(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+
+    r = r <= 0.04045 ? r / 12.92 : Math.pow((r+0.055)/1.055, 2.4);
+    g = g <= 0.04045 ? g / 12.92 : Math.pow((g+0.055)/1.055, 2.4);
+    b = b <= 0.04045 ? b / 12.92 : Math.pow((b+0.055)/1.055, 2.4);
+
+    let l = 0.4122214708*r + 0.5363325363*g + 0.0514459929*b;
+    let m = 0.2119034982*r + 0.6806995451*g + 0.1073969566*b;
+    let s = 0.0883024619*r + 0.2817188376*g + 0.6299787005*b;
+
+    l = Math.cbrt(l);
+    m = Math.cbrt(m);
+    s = Math.cbrt(s);
+
+    return {
+      L: 0.2104542553*l + 0.7936177850*m - 0.0040720468*s,
+      a: 1.9779984951*l - 2.4285922050*m + 0.4505937099*s,
+      b: 0.0259040371*l + 0.7827717662*m - 0.8086757660*s
+    };
+  }
+
+  function oklabToRgb(L, a, b) {
+    let l_ = L + 0.3963377774*a + 0.2158037573*b;
+    let m_ = L - 0.1055613458*a - 0.0638541728*b;
+    let s_ = L - 0.0894841775*a - 1.2914855480*b;
+
+    let l = l_ * l_ * l_;
+    let m = m_ * m_ * m_;
+    let s = s_ * s_ * s_;
+
+    let r = +4.0767416621*l - 3.3077115913*m + 0.2309699292*s;
+    let g = -1.2684380046*l + 2.6097574011*m - 0.3413193965*s;
+    let b_ = -0.0041960863*l - 0.7034186147*m + 1.7076147010*s;
+
+    r = r <= 0.0031308 ? 12.92*r : 1.055 * Math.pow(r, 1/2.4) - 0.055;
+    g = g <= 0.0031308 ? 12.92*g : 1.055 * Math.pow(g, 1/2.4) - 0.055;
+    b_ = b_ <= 0.0031308 ? 12.92*b_ : 1.055 * Math.pow(b_, 1/2.4) - 0.055;
+
+    return {
+      r: Math.round(clamp(r,0,1)*255),
+      g: Math.round(clamp(g,0,1)*255),
+      b: Math.round(clamp(b_,0,1)*255)
+    };
+  }
+
+  function oklabToOklch(L, a, b) {
+    let C = Math.sqrt(a*a + b*b);
+    let h = Math.atan2(b, a) * 180 / Math.PI;
+    if (h < 0) h += 360;
+    return {L, C, h};
+  }
+
+  function oklchToOklab(L, C, h) {
+    let hr = h * Math.PI / 180;
+    return {
+      L,
+      a: C * Math.cos(hr),
+      b: C * Math.sin(hr)
+    };
+  }
+
+  function fillFromRgb(r, g, b) {
+    r = clamp(Math.round(r),0,255);
+    g = clamp(Math.round(g),0,255);
+    b = clamp(Math.round(b),0,255);
+
+    document.getElementById('hex').value = rgbToHex(r, g, b).toUpperCase();
+
+    document.getElementById('r').value = r;
+    document.getElementById('g').value = g;
+    document.getElementById('b').value = b;
+
+    const hsl = rgbToHsl(r, g, b);
+    document.getElementById('hsl-h').value = hsl.h;
+    document.getElementById('hsl-s').value = hsl.s;
+    document.getElementById('hsl-l').value = hsl.l;
+
+    const hsv = rgbToHsv(r, g, b);
+    document.getElementById('hsv-h').value = hsv.h;
+    document.getElementById('hsv-s').value = hsv.s;
+    document.getElementById('hsv-v').value = hsv.v;
+
+    const cmyk = rgbToCmyk(r, g, b);
+    document.getElementById('cmyk-c').value = cmyk.c;
+    document.getElementById('cmyk-m').value = cmyk.m;
+    document.getElementById('cmyk-y').value = cmyk.y;
+    document.getElementById('cmyk-k').value = cmyk.k;
+
+    const oklab = rgbToOklab(r, g, b);
+    const oklch = oklabToOklch(oklab.L, oklab.a, oklab.b);
+    document.getElementById('oklch-l').value = oklch.L.toFixed(3);
+    document.getElementById('oklch-c').value = oklch.C.toFixed(3);
+    document.getElementById('oklch-h').value = oklch.h.toFixed(1);
+
+    updatePreview(r, g, b);
+  }
+
+  function updatePreview(r, g, b) {
+    document.getElementById('preview').style.backgroundColor = `rgb(${r},${g},${b})`;
+  }
+
+  // Hex input with debounce and validation
+  let hexTimeout = null;
+  function onHexInput() {
+    clearTimeout(hexTimeout);
+    hexTimeout = setTimeout(() => {
+      let hex = document.getElementById('hex').value.trim().toUpperCase();
+      if (!hex.startsWith('#')) hex = '#' + hex;
+      if (!/^#([0-9A-F]{3}|[0-9A-F]{6})$/.test(hex)) return;
+      const rgb = hexToRgb(hex);
+      if (rgb) fillFromRgb(rgb.r, rgb.g, rgb.b);
+    }, 300);
+  }
+
+  function fromRgb() {
+    let r = Number(document.getElementById('r').value);
+    let g = Number(document.getElementById('g').value);
+    let b = Number(document.getElementById('b').value);
+    if ([r,g,b].some(v => isNaN(v) || v < 0 || v > 255)) return;
+    fillFromRgb(r, g, b);
+  }
+
+  function fromHsl() {
+    let h = Number(document.getElementById('hsl-h').value);
+    let s = Number(document.getElementById('hsl-s').value);
+    let l = Number(document.getElementById('hsl-l').value);
+    if ([h,s,l].some(v => isNaN(v))) return;
+    h = ((h % 360) + 360) % 360;
+    s = clamp(s, 0, 100);
+    l = clamp(l, 0, 100);
+    const rgb = hslToRgb(h, s, l);
+    fillFromRgb(rgb.r, rgb.g, rgb.b);
+  }
+
+  function fromHsv() {
+    let h = Number(document.getElementById('hsv-h').value);
+    let s = Number(document.getElementById('hsv-s').value);
+    let v = Number(document.getElementById('hsv-v').value);
+    if ([h,s,v].some(vv => isNaN(vv))) return;
+    h = ((h % 360) + 360) % 360;
+    s = clamp(s, 0, 100);
+    v = clamp(v, 0, 100);
+    const rgb = hsvToRgb(h, s, v);
+    fillFromRgb(rgb.r, rgb.g, rgb.b);
+  }
+
+  function fromCmyk() {
+    let c = Number(document.getElementById('cmyk-c').value);
+    let m = Number(document.getElementById('cmyk-m').value);
+    let y = Number(document.getElementById('cmyk-y').value);
+    let k = Number(document.getElementById('cmyk-k').value);
+    if ([c,m,y,k].some(v => isNaN(v))) return;
+    c = clamp(c,0,100);
+    m = clamp(m,0,100);
+    y = clamp(y,0,100);
+    k = clamp(k,0,100);
+    const rgb = cmykToRgb(c, m, y, k);
+    fillFromRgb(rgb.r, rgb.g, rgb.b);
+  }
+
+  function fromOklch() {
+    let L = Number(document.getElementById('oklch-l').value);
+    let C = Number(document.getElementById('oklch-c').value);
+    let H = Number(document.getElementById('oklch-h').value);
+    if ([L,C,H].some(v => isNaN(v))) return;
+    L = clamp(L, 0, 1);
+    C = clamp(C, 0, 0.5);
+    H = ((H % 360) + 360) % 360;
+    const oklab = oklchToOklab(L, C, H);
+    const rgb = oklabToRgb(oklab.L, oklab.a, oklab.b);
+    fillFromRgb(rgb.r, rgb.g, rgb.b);
+  }
+
+  // Hook inputs
+  document.getElementById('hex').addEventListener('input', onHexInput);
+  document.getElementById('r').addEventListener('input', fromRgb);
+  document.getElementById('g').addEventListener('input', fromRgb);
+  document.getElementById('b').addEventListener('input', fromRgb);
+
+  document.getElementById('hsl-h').addEventListener('input', fromHsl);
+  document.getElementById('hsl-s').addEventListener('input', fromHsl);
+  document.getElementById('hsl-l').addEventListener('input', fromHsl);
+
+  document.getElementById('hsv-h').addEventListener('input', fromHsv);
+  document.getElementById('hsv-s').addEventListener('input', fromHsv);
+  document.getElementById('hsv-v').addEventListener('input', fromHsv);
+
+  document.getElementById('cmyk-c').addEventListener('input', fromCmyk);
+  document.getElementById('cmyk-m').addEventListener('input', fromCmyk);
+  document.getElementById('cmyk-y').addEventListener('input', fromCmyk);
+  document.getElementById('cmyk-k').addEventListener('input', fromCmyk);
+
+  document.getElementById('oklch-l').addEventListener('input', fromOklch);
+  document.getElementById('oklch-c').addEventListener('input', fromOklch);
+  document.getElementById('oklch-h').addEventListener('input', fromOklch);
+
+  // Initialize default #39EA1A
+  fillFromRgb(57, 234, 26);
+</script>
+
+</body>
+</html>

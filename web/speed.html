@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speed Converter</title>
+<style>
+  body {
+    background-color: #121212;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    margin: 0;
+    max-width: 360px;
+  }
+  h2 {
+    margin-bottom: 16px;
+  }
+  .unit-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  label {
+    width: 130px;
+  }
+  input[type="number"] {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 1rem;
+    border: 1.5px solid #555;
+    border-radius: 6px;
+    background-color: #222;
+    color: #eee;
+  }
+  input[type="number"]:focus {
+    outline: none;
+    border-color: #3a9bf0;
+    box-shadow: 0 0 6px #3a9bf0;
+    background-color: #2a2a2a;
+  }
+</style>
+</head>
+<body>
+
+<h2>Speed Converter</h2>
+
+<div class="unit-row">
+  <label for="mph">Miles per hour (MPH)</label>
+  <input type="number" id="mph" step="any" min="0" />
+</div>
+<div class="unit-row">
+  <label for="fps">Feet per second (ft/s)</label>
+  <input type="number" id="fps" step="any" min="0" />
+</div>
+<div class="unit-row">
+  <label for="mps">Meters per second (m/s)</label>
+  <input type="number" id="mps" step="any" min="0" />
+</div>
+<div class="unit-row">
+  <label for="kmh">Kilometers per hour (km/h)</label>
+  <input type="number" id="kmh" step="any" min="0" />
+</div>
+<div class="unit-row">
+  <label for="knots">Knots</label>
+  <input type="number" id="knots" step="any" min="0" />
+</div>
+
+<script>
+  const units = {
+    mph: 0.44704,     // meters per second
+    fps: 0.3048,
+    mps: 1,
+    kmh: 0.277778,
+    knots: 0.514444
+  };
+
+  const inputs = {};
+  for (const id in units) {
+    inputs[id] = document.getElementById(id);
+  }
+
+  let isUpdating = false;
+
+  function convertFrom(unitId, value) {
+    if (isUpdating) return;
+    isUpdating = true;
+    const baseMps = value * units[unitId]; // convert input to m/s
+    for (const id in inputs) {
+      if (id === unitId) continue;
+      inputs[id].value = +(baseMps / units[id]).toFixed(6);
+    }
+    isUpdating = false;
+  }
+
+  for (const id in inputs) {
+    inputs[id].addEventListener('input', e => {
+      const val = parseFloat(e.target.value);
+      if (!isNaN(val)) convertFrom(id, val);
+      else {
+        if (!isUpdating) {
+          isUpdating = true;
+          for (const key in inputs) {
+            if (key !== id) inputs[key].value = '';
+          }
+          isUpdating = false;
+        }
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
