@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Calculator</title>
+<style>
+  :root {
+    --bg: #121212;
+    --panel: #1e1e1e;
+    --muted: #333;
+    --muted-2: #555;
+    --text: #eee;
+    --accent: #ffb86b;
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Segoe UI, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .display {
+    background: var(--panel);
+    padding: 20px;
+    text-align: right;
+    font-size: 2.5rem;
+    font-weight: 600;
+    border-bottom: 2px solid #222;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .history {
+    color: #9a9a9a;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    min-height: 1.2em;
+  }
+  .output {
+    word-wrap: break-word;
+  }
+
+  .keys {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 6px;
+    padding: 10px;
+    background: var(--bg);
+  }
+  button.key {
+    border: none;
+    border-radius: 8px;
+    background: var(--muted);
+    color: var(--text);
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  button.key:active { transform: scale(0.97); }
+  button.key:hover { background: var(--muted-2); }
+
+  /* Variants */
+  .func { background: #222; color: #bbb; font-size: 1.2rem; }
+  .operator { background: #2a2a2a; font-size: 1.6rem; }
+  .equals {
+    background: linear-gradient(180deg, var(--accent), #ffa95a);
+    color: #111;
+    font-weight: 700;
+    grid-row: span 2;
+    font-size: 1.6rem;
+  }
+</style>
+</head>
+<body>
+  <div class="display">
+    <div class="history" id="history">&nbsp;</div>
+    <div class="output" id="output">0</div>
+  </div>
+
+  <div class="keys" id="keys">
+    <!-- Row 1 -->
+    <button class="key func" data-action="percent">%</button>
+    <button class="key func" data-action="clear">C</button>
+    <button class="key func" data-action="back">⌫</button>
+    <button class="key operator" data-value="/">÷</button>
+
+    <!-- Row 2 -->
+    <button class="key" data-value="7">7</button>
+    <button class="key" data-value="8">8</button>
+    <button class="key" data-value="9">9</button>
+    <button class="key operator" data-value="*">×</button>
+
+    <!-- Row 3 -->
+    <button class="key" data-value="4">4</button>
+    <button class="key" data-value="5">5</button>
+    <button class="key" data-value="6">6</button>
+    <button class="key operator" data-value="-">−</button>
+
+    <!-- Row 4 -->
+    <button class="key" data-value="1">1</button>
+    <button class="key" data-value="2">2</button>
+    <button class="key" data-value="3">3</button>
+    <button class="key operator" data-value="+">+</button>
+
+    <!-- Row 5 -->
+    <button class="key func" data-action="plusminus">±</button>
+    <button class="key" data-value="0">0</button>
+    <button class="key" data-value=".">.</button>
+    <button class="key equals" data-action="equals">=</button>
+  </div>
+
+<script>
+(function(){
+  const outputEl=document.getElementById('output');
+  const historyEl=document.getElementById('history');
+  const keys=document.getElementById('keys');
+  let current='0', prev='', justEvaluated=false;
+
+  function render(){
+    outputEl.textContent=current;
+    historyEl.textContent=prev||'\xa0';
+  }
+  function safe(expr){return /^[0-9+\-*/().\s%]+$/.test(expr);}
+  function inputDigit(d){
+    if(justEvaluated){current=d==='.'?'0.':d;justEvaluated=false;render();return;}
+    if(current==='0'&&d!=='.')current=d;
+    else if(current.includes('.')&&d=='.')return;
+    else current+=d;
+    render();
+  }
+  function inputOperator(op){
+    if(justEvaluated){prev=current+' '+op;justEvaluated=false;return;}
+    if(prev===''){prev=current+' '+op;current='0';}
+    else{
+      if(/[+\-*/]\s*$/.test(prev))prev=prev.replace(/[+\-*/]\s*$/,op+' ');
+      else prev=prev+' '+current+' '+op;
+      current='0';
+    }
+    render();
+  }
+  function clearAll(){current='0';prev='';justEvaluated=false;render();}
+  function backspace(){if(justEvaluated){current='0';justEvaluated=false;}else{current=current.length>1?current.slice(0,-1):'0';}render();}
+  function toggle(){if(current==='0')return;if(current.startsWith('-'))current=current.slice(1);else current='-'+current;render();}
+  function percent(){let n=parseFloat(current);if(!isNaN(n))current=String(n/100);render();}
+  function evaluateAll(){
+    let expr=(prev?prev+' '+current:current).replace(/×/g,'*').replace(/÷/g,'/').replace(/%/g,'/100');
+    if(!safe(expr)){outputEl.textContent='Error';return;}
+    try{const val=Function('"use strict";return('+expr+')')();current=Number.isFinite(val)?String(val):'Error';prev='';justEvaluated=true;render();}
+    catch(e){outputEl.textContent='Error';}
+  }
+
+  keys.addEventListener('click',e=>{
+    const btn=e.target.closest('button');if(!btn)return;
+    const v=btn.dataset.value,a=btn.dataset.action;
+    if(v){if(/[0-9.]/.test(v))inputDigit(v);else inputOperator(v);}
+    else if(a){if(a==='clear')clearAll();if(a==='back')backspace();if(a==='plusminus')toggle();if(a==='percent')percent();if(a==='equals')evaluateAll();}
+  });
+
+  window.addEventListener('keydown',e=>{
+    if(e.key>='0'&&e.key<='9'){inputDigit(e.key);e.preventDefault();}
+    if(e.key==='.'){inputDigit('.');e.preventDefault();}
+    if(['+','-','*','/'].includes(e.key)){inputOperator(e.key);e.preventDefault();}
+    if(e.key==='Enter'||e.key==='='){evaluateAll();e.preventDefault();}
+    if(e.key==='Backspace'){backspace();e.preventDefault();}
+    if(e.key==='Escape'){clearAll();e.preventDefault();}
+    if(e.key==='%'){percent();e.preventDefault();}
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
