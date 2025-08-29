@@ -14,21 +14,21 @@
   }
   body {
     display: flex;
-    flex-direction: column;
     height: 100vh;
     overflow: hidden;
   }
-  .tabs {
+  .sidebar {
     display: flex;
-    border-bottom: 2px solid #333;
+    flex-direction: column;
+    width: 200px;
     background-color: #1e1e1e;
-    align-items: center;
+    border-right: 2px solid #333;
   }
   .tab {
-    padding: 12px 24px;
+    padding: 12px 16px;
     cursor: pointer;
     border: 1px solid transparent;
-    border-bottom: none;
+    border-right: none;
     user-select: none;
     color: #ccc;
     transition: background-color 0.2s, color 0.2s;
@@ -39,7 +39,7 @@
   }
   .tab.active {
     border: 1px solid #555;
-    border-bottom: 2px solid #121212;
+    border-right: 2px solid #121212;
     background-color: #121212;
     color: #fff;
     font-weight: bold;
@@ -51,29 +51,35 @@
     background-color: #121212;
   }
   .buttons {
-    margin-left: auto;
+    margin-top: auto;
     display: flex;
+    flex-direction: column;
     gap: 8px;
-    padding: 0 12px;
+    padding: 12px;
   }
   .buttons a, .buttons button {
     background: #333;
-    color: #fff;
-    padding: 8px 14px;
-    text-decoration: none;
+    padding: 8px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     transition: background 0.2s;
   }
   .buttons a:hover, .buttons button:hover {
     background: #555;
   }
+  .buttons img {
+    width: 24px;
+    height: 24px;
+  }
 </style>
 </head>
 <body>
 
-<div class="tabs">
+<div class="sidebar">
   <div class="tab active" data-src="length.html">Length Converter</div>
   <div class="tab" data-src="weight.html">Weight Converter</div>
   <div class="tab" data-src="time.html">Time</div>
@@ -83,8 +89,12 @@
   <div class="tab" data-src="area.html">Area Converter</div>
 
   <div class="buttons">
-    <a href="https://www.paypal.com/donate/?hosted_button_id=XX5U9H8HCN6B4" target="_blank">Donate</a>
-    <button onclick="window.open('https://freddiethepebble.github.io/PebbleTools/web/', '_blank')">Open in New Tab</button>
+    <a href="https://www.paypal.com/donate/?hosted_button_id=XX5U9H8HCN6B4" target="_blank">
+      <img src="https://raw.githubusercontent.com/FreddieThePebble/PebbleTools/refs/heads/main/assets/ui/paypal.png" alt="Donate">
+    </a>
+    <button onclick="window.open('https://freddiethepebble.github.io/PebbleTools/web/', '_blank')">
+      <img src="https://raw.githubusercontent.com/FreddieThePebble/PebbleTools/refs/heads/main/assets/ui/open.png" alt="Open">
+    </button>
   </div>
 </div>
 
