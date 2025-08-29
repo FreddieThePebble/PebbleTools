@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binary Translator</title>
+<style>
+:root{
+  --bg:#121212; --panel:#1e1e1e; --muted:#2a2a2a; --text:#eee; --accent:#ffb86b;
+}
+html, body {
+  margin:0; padding:0; width:100%; height:100%; font-family:Segoe UI,Arial,sans-serif; background:var(--bg); color:var(--text); overflow-y:auto;
+}
+body{display:flex; flex-direction:column;}
+.topbar{
+  display:flex; gap:12px; padding:8px; background:var(--panel); align-items:center; flex-wrap:wrap;
+}
+.topbar label{font-size:14px;}
+.topbar input[type=radio]{margin-right:4px;}
+.topbar button{
+  padding:6px 12px; border:none; border-radius:6px; cursor:pointer; background:var(--muted); color:var(--text);
+}
+.topbar button.accent{background:var(--accent); color:#111; font-weight:bold;}
+.topbar button:hover{opacity:0.85;}
+.areas{
+  display:flex; flex:1; gap:4px; padding:4px; min-height:calc(100vh - 56px);
+}
+.area{
+  flex:1; display:flex; flex-direction:column; gap:4px;
+}
+.area label{font-size:14px; padding-left:4px;}
+textarea{
+  flex:1; width:100%; resize:none; padding:12px; border:none; border-radius:6px; font-family:ui-monospace,monospace; font-size:18px; background:#0f0f10; color:var(--text);
+}
+.actions{
+  display:flex; gap:6px; padding:4px;
+}
+.info{font-size:12px; color:#9a9a9a; padding-left:4px;}
+.manual{
+  margin-top:50px; padding:12px; background:var(--panel); border-radius:10px; max-width:1200px; margin-left:auto; margin-right:auto;
+}
+.manual h2{margin-top:0; margin-bottom:10px;}
+.manual table{width:100%; border-collapse:collapse;}
+.manual table td, .manual table th{border:1px solid #444; padding:4px; text-align:center;}
+.manual table th{background:#222;}
+.manual table td{background:#1c1c1c;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <label><input type="radio" name="dir" value="e2b" checked> English → Binary</label>
+    <label><input type="radio" name="dir" value="b2e"> Binary → English</label>
+  </div>
+  <button id="swapBtn">⇆ Swap</button>
+  <button id="clearBtn">Clear</button>
+</div>
+
+<div class="areas">
+  <div class="area">
+    <label for="input">Input</label>
+    <textarea id="input" placeholder="Type English or Binary here..."></textarea>
+    <div class="actions">
+      <button id="pasteBtn">Paste</button>
+      <button id="downloadIn" class="accent">Download Input</button>
+    </div>
+  </div>
+  <div class="area">
+    <label for="output">Output</label>
+    <textarea id="output" readonly placeholder="Output appears here"></textarea>
+    <div class="actions">
+      <button id="copyOut">Copy Output</button>
+      <button id="downloadOut" class="accent">Download Output</button>
+    </div>
+    <div class="info">Binary uses 8 bits per character, separated by spaces.</div>
+  </div>
+</div>
+
+<div class="manual">
+  <h2>Binary Reference Table (ASCII → 8-bit Binary)</h2>
+  <table>
+    <tr><th>Char</th><th>Binary</th><th>Char</th><th>Binary</th></tr>
+    <tr><td>A</td><td>01000001</td><td>N</td><td>01001110</td></tr>
+    <tr><td>B</td><td>01000010</td><td>O</td><td>01001111</td></tr>
+    <tr><td>C</td><td>01000011</td><td>P</td><td>01010000</td></tr>
+    <tr><td>D</td><td>01000100</td><td>Q</td><td>01010001</td></tr>
+    <tr><td>E</td><td>01000101</td><td>R</td><td>01010010</td></tr>
+    <tr><td>F</td><td>01000110</td><td>S</td><td>01010011</td></tr>
+    <tr><td>G</td><td>01000111</td><td>T</td><td>01010100</td></tr>
+    <tr><td>H</td><td>01001000</td><td>U</td><td>01010101</td></tr>
+    <tr><td>I</td><td>01001001</td><td>V</td><td>01010110</td></tr>
+    <tr><td>J</td><td>01001010</td><td>W</td><td>01010111</td></tr>
+    <tr><td>K</td><td>01001011</td><td>X</td><td>01011000</td></tr>
+    <tr><td>L</td><td>01001100</td><td>Y</td><td>01011001</td></tr>
+    <tr><td>M</td><td>01001101</td><td>Z</td><td>01011010</td></tr>
+  </table>
+</div>
+
+<script>
+(() => {
+  const input=document.getElementById('input');
+  const output=document.getElementById('output');
+  const dirRadios=document.getElementsByName('dir');
+  const swapBtn=document.getElementById('swapBtn');
+  const copyOut=document.getElementById('copyOut');
+  const clearBtn=document.getElementById('clearBtn');
+  const pasteBtn=document.getElementById('pasteBtn');
+  const downloadIn=document.getElementById('downloadIn');
+  const downloadOut=document.getElementById('downloadOut');
+
+  function getDir(){return Array.from(dirRadios).find(r=>r.checked).value;}
+
+  function englishToBinary(text){
+    return text.split('').map(c=>c.charCodeAt(0).toString(2).padStart(8,'0')).join(' ');
+  }
+
+  function binaryToEnglish(bin){
+    return bin.split(' ').map(b=>{
+      const n = parseInt(b,2);
+      return isNaN(n)?'?':String.fromCharCode(n);
+    }).join('');
+  }
+
+  function translate(){output.value=getDir()==='e2b'?englishToBinary(input.value):binaryToEnglish(input.value);}
+
+  input.addEventListener('input',translate);
+  Array.from(dirRadios).forEach(r=>r.addEventListener('change',translate));
+
+  swapBtn.addEventListener('click',()=>{
+    const dir=getDir();
+    input.value=output.value;
+    if(dir==='e2b') document.querySelector('input[value="b2e"]').checked=true;
+    else document.querySelector('input[value="e2b"]').checked=true;
+    translate();
+    input.focus();
+  });
+
+  copyOut.addEventListener('click',()=>navigator.clipboard.writeText(output.value).catch(()=>{}));
+  clearBtn.addEventListener('click',()=>{input.value=''; output.value=''; input.focus();});
+  pasteBtn.addEventListener('click',async()=>{try{input.value+=await navigator.clipboard.readText();translate();}catch{}});
+  function downloadText(name,text){const blob=new Blob([text],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href);}
+  downloadIn.addEventListener('click',()=>downloadText('input.txt',input.value));
+  downloadOut.addEventListener('click',()=>downloadText('output.txt',output.value));
+
+  // init
+  input.value='Hello'; translate();
+})();
+</script>
+</body>
+</html>
