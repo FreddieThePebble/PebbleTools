@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Area Converter</title>
+<title>PebbleTools - Area</title>
 <style>
   body {
     background-color: #121212;
@@ -11,21 +11,32 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: 20px;
     margin: 0;
-    max-width: 360px;
   }
-  h2 {
-    margin-bottom: 16px;
+  h2 { margin-bottom: 16px; }
+  .container {
+    display: flex;
+    gap: 20px;
+  }
+  .column {
+    flex: 1;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 15px 20px;
+    background-color: #1e1e1e;
+    min-width: 230px;
+    max-height: 80vh;
+    overflow-y: auto;
   }
   .unit-row {
     display: flex;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
-  label {
-    width: 140px;
+  .unit-row label {
+    width: 130px;
   }
-  input[type="number"] {
-    flex: 1;
+  .unit-row input {
+    width: 130px;
     padding: 6px 10px;
     font-size: 1rem;
     border: 1.5px solid #555;
@@ -33,7 +44,7 @@
     background-color: #222;
     color: #eee;
   }
-  input[type="number"]:focus {
+  .unit-row input:focus {
     outline: none;
     border-color: #3a9bf0;
     box-shadow: 0 0 6px #3a9bf0;
@@ -43,76 +54,92 @@
 </head>
 <body>
 
-<h2>Area Converter</h2>
-
-<div class="unit-row">
-  <label for="sqm">Square meter (m²)</label>
-  <input type="number" id="sqm" step="any" min="0" />
-</div>
-<div class="unit-row">
-  <label for="sqkm">Square kilometer (km²)</label>
-  <input type="number" id="sqkm" step="any" min="0" />
-</div>
-<div class="unit-row">
-  <label for="sqft">Square foot (ft²)</label>
-  <input type="number" id="sqft" step="any" min="0" />
-</div>
-<div class="unit-row">
-  <label for="sqyd">Square yard (yd²)</label>
-  <input type="number" id="sqyd" step="any" min="0" />
-</div>
-<div class="unit-row">
-  <label for="acre">Acre</label>
-  <input type="number" id="acre" step="any" min="0" />
-</div>
-<div class="unit-row">
-  <label for="hectare">Hectare</label>
-  <input type="number" id="hectare" step="any" min="0" />
+<h2>Area Measurement Converter</h2>
+<div class="container">
+  <div class="column" id="metric-column"><h3>Metric</h3></div>
+  <div class="column" id="imperial-column"><h3>Imperial</h3></div>
+  <div class="column" id="misc-column"><h3>Miscellaneous</h3></div>
 </div>
 
 <script>
-  const units = {
-    sqm: 1, // square meter
-    sqkm: 1e6, // square km = 1,000,000 m²
-    sqft: 0.092903, // square foot in m²
-    sqyd: 0.836127, // square yard in m²
-    acre: 4046.8564224, // acre in m²
-    hectare: 10000 // hectare in m²
-  };
+const areaUnits = [
+  // Metric
+  { name: "square millimeter", toSqMeter: 1e-6, group: "metric" },
+  { name: "square centimeter", toSqMeter: 1e-4, group: "metric" },
+  { name: "square meter", toSqMeter: 1, group: "metric" },
+  { name: "square kilometer", toSqMeter: 1e6, group: "metric" },
+  { name: "are", toSqMeter: 100, group: "metric" },
+  { name: "hectare", toSqMeter: 10000, group: "metric" },
 
-  const inputs = {};
-  for (const id in units) {
-    inputs[id] = document.getElementById(id);
-  }
+  // Imperial
+  { name: "square inch", toSqMeter: 0.00064516, group: "imperial" },
+  { name: "square foot", toSqMeter: 0.092903, group: "imperial" },
+  { name: "square yard", toSqMeter: 0.836127, group: "imperial" },
+  { name: "square mile", toSqMeter: 2.59e6, group: "imperial" },
+  { name: "acre", toSqMeter: 4046.856, group: "imperial" },
 
-  let isUpdating = false;
+  // Misc
+  { name: "barn", toSqMeter: 1e-28, group: "misc" },
+];
 
-  function convertFrom(unitId, value) {
-    if (isUpdating) return;
-    isUpdating = true;
-    const baseSqm = value * units[unitId]; // convert input to sqm
-    for (const id in inputs) {
-      if (id === unitId) continue;
-      inputs[id].value = +(baseSqm / units[id]).toFixed(6);
-    }
-    isUpdating = false;
-  }
+const containers = {
+  metric: document.getElementById("metric-column"),
+  imperial: document.getElementById("imperial-column"),
+  misc: document.getElementById("misc-column"),
+};
 
-  for (const id in inputs) {
-    inputs[id].addEventListener('input', e => {
-      const val = parseFloat(e.target.value);
-      if (!isNaN(val)) convertFrom(id, val);
-      else {
-        if (!isUpdating) {
-          isUpdating = true;
-          for (const key in inputs) {
-            if (key !== id) inputs[key].value = '';
-          }
-          isUpdating = false;
-        }
+areaUnits.forEach((unit, i) => {
+  const container = containers[unit.group];
+  const row = document.createElement("div");
+  row.className = "unit-row";
+
+  const label = document.createElement("label");
+  label.htmlFor = "input" + i;
+  label.textContent = unit.name;
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.step = "any";
+  input.min = "0";
+  input.id = "input" + i;
+  input.dataset.index = i;
+
+  row.appendChild(label);
+  row.appendChild(input);
+  container.appendChild(row);
+});
+
+let isUpdating = false;
+
+function convertFrom(index, value) {
+  if(isUpdating) return;
+  isUpdating = true;
+  const baseSqMeters = value * areaUnits[index].toSqMeter;
+  areaUnits.forEach((unit, i) => {
+    if(i === index) return;
+    const converted = baseSqMeters / unit.toSqMeter;
+    const input = document.getElementById("input" + i);
+    input.value = (converted || "").toFixed(6);
+  });
+  isUpdating = false;
+}
+
+areaUnits.forEach((_, i) => {
+  const input = document.getElementById("input" + i);
+  input.addEventListener("input", e => {
+    const val = parseFloat(e.target.value);
+    if(!isNaN(val)) convertFrom(i, val);
+    else {
+      if(!isUpdating) {
+        isUpdating = true;
+        areaUnits.forEach((_, idx) => {
+          if(idx !== i) document.getElementById("input" + idx).value = "";
+        });
+        isUpdating = false;
       }
-    });
-  }
+    }
+  });
+});
 </script>
 
 </body>
