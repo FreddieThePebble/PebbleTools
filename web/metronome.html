@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Metronome</title>
+<style>
+  body {
+    background-color: #121212;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 0 15px 30px;
+  }
+  h2 {
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  input[type="text"], input[type="number"], input[type="range"] {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    background-color: #222;
+    color: #eee;
+    border: 1.5px solid #555;
+    border-radius: 6px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, input[type="range"]:focus {
+    border-color: #1CBC00;
+    box-shadow: 0 0 6px #1CBC00;
+    outline: none;
+    background-color: #2a2a2a;
+  }
+  .block {
+    background-color: #1e1e1e;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 18px;
+  }
+  .row {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .row > div {
+    flex: 1;
+  }
+  button {
+    background-color: #1CBC00;
+    border: none;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  button:hover {
+    background-color: #1CBC00;
+  }
+  .bpm-display {
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+  <h2>Metronome</h2>
+  <div class="block">
+    <div class="bpm-display" id="bpmLabel">120 BPM</div>
+    <label for="bpmRange">BPM</label>
+    <div class="row">
+      <div>
+        <input id="bpmRange" type="range" min="1" max="240" value="120">
+      </div>
+      <div style="max-width:100px">
+        <input id="bpmNum" type="number" min="1" max="240" value="120">
+      </div>
+    </div>
+    <div style="margin-top:15px">
+      <button id="toggle">Play</button>
+    </div>
+  </div>
+
+  <audio id="clickSound" preload="auto"
+    src="https://github.com/FreddieThePebble/PebbleTools/raw/refs/heads/main/assets/sfx/pop.mp3">
+  </audio>
+
+<script>
+const audio = document.getElementById('clickSound');
+const bpmRange = document.getElementById('bpmRange');
+const bpmNum = document.getElementById('bpmNum');
+const toggle = document.getElementById('toggle');
+const bpmLabel = document.getElementById('bpmLabel');
+
+let isPlaying = false;
+let timerId = null;
+
+function getIntervalMs(){
+  const bpm = Math.max(1, Math.min(240, parseInt(bpmNum.value) || 120));
+  return 60000 / bpm;
+}
+function updateBpmDisplay(){
+  bpmLabel.textContent = `${bpmNum.value} BPM`;
+}
+function playClick(){
+  const a = audio.cloneNode();
+  a.play().catch(()=>{});
+}
+function scheduleNext(){
+  if(!isPlaying) return;
+  playClick();
+  timerId = setTimeout(scheduleNext, getIntervalMs());
+}
+function start(){
+  if(isPlaying) return;
+  isPlaying = true;
+  toggle.textContent = 'Pause';
+  scheduleNext();
+}
+function stop(){
+  if(!isPlaying) return;
+  isPlaying = false;
+  toggle.textContent = 'Play';
+  clearTimeout(timerId);
+  timerId = null;
+}
+toggle.addEventListener('click', ()=>{ if(!isPlaying) start(); else stop(); });
+bpmRange.addEventListener('input', ()=>{
+  bpmNum.value = bpmRange.value;
+  updateBpmDisplay();
+  if(isPlaying){ clearTimeout(timerId); timerId = setTimeout(scheduleNext, getIntervalMs()); }
+});
+bpmNum.addEventListener('input', ()=>{
+  let v = parseInt(bpmNum.value) || 1;
+  v = Math.max(1, Math.min(240, v));
+  bpmNum.value = v;
+  bpmRange.value = v;
+  updateBpmDisplay();
+  if(isPlaying){ clearTimeout(timerId); timerId = setTimeout(scheduleNext, getIntervalMs()); }
+});
+updateBpmDisplay();
+</script>
+</body>
+</html>
