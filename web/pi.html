@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PebbleTools - π</title>
+<style>
+  body {
+    background: #121212;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  input[type=number] {
+    width: 150px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    background: #1e1e1e;
+    color: #eee;
+    margin-bottom: 10px;
+  }
+  textarea {
+    width: 100%;
+    max-width: 800px;
+    height: 400px;
+    background: #1e1e1e;
+    color: #eee;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 14px;
+    resize: vertical;
+    margin-top: 10px;
+  }
+  button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 6px;
+    background: #06b6d4;
+    color: #042028;
+    font-weight: bold;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<label>
+  Digits (3–1,000,000):
+  <input type="number" id="digitsInput" min="3" max="1000000" value="100">
+</label>
+
+<div>
+  <button id="copyBtn">Copy</button>
+  <button id="downloadBtn">Download</button>
+</div>
+
+<textarea id="piText" readonly>Loading π…</textarea>
+
+<script>
+const piText = document.getElementById('piText');
+const digitsInput = document.getElementById('digitsInput');
+const copyBtn = document.getElementById('copyBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+
+let fullPi = "";
+
+fetch("https://gist.githubusercontent.com/FreddieThePebble/e3221780a48f9e7506b221a466a80043/raw/99acd332ab8e2e91b7f1cb919a960958b67d051a/First%25201,000,000%2520digits%2520of%2520pi.txt")
+  .then(response => response.text())
+  .then(text => {
+    fullPi = text.replace(/\s+/g, '');
+    updatePi();
+  })
+  .catch(err => {
+    piText.value = "Failed to load π: " + err;
+  });
+
+function updatePi() {
+  const digits = Math.max(3, Math.min(1000000, Number(digitsInput.value)));
+  piText.value = fullPi.slice(0, 2 + digits);
+}
+
+digitsInput.addEventListener('input', updatePi);
+
+copyBtn.addEventListener('click', () => {
+  piText.select();
+  piText.setSelectionRange(0, 9999999);
+  navigator.clipboard.writeText(piText.value);
+  copyBtn.textContent = 'Copied!';
+  setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+});
+
+downloadBtn.addEventListener('click', () => {
+  const blob = new Blob([piText.value], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pi-${digitsInput.value}-digits.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+</script>
+
+</body>
+</html>
